@@ -2,6 +2,7 @@ import { User } from "../models/userModel.js";
 import httpStatus from "http-status";
 import bcrypt, { hash, compare } from "bcrypt";
 import crypto from "crypto";
+import e from "express";
 
 const login = async (req, res) => {
   const { username, password } = req.body;
@@ -15,11 +16,17 @@ const login = async (req, res) => {
         .status(httpStatus.NOT_FOUND)
         .json({ message: "User not found" });
     }
-    if (bcrypt.compare(password, user.password)) {
+    let isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+    if (isPasswordCorrect) {
       let token = crypto.randomBytes(20).toString("hex");
       user.token = token;
       await user.save();
       return res.status(httpStatus.OK).json({ token: token });
+    } else {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+        message: "Invalid username or password",
+      });
     }
   } catch (e) {
     return res.json(500).json({ message: `Something went Wrong ${e}` });
